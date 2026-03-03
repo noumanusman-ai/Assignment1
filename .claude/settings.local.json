@@ -9,7 +9,9 @@
       "Bash(pnpm add:*)",
       "Bash(xargs grep:*)",
       "Bash(grep:*)",
-      "Bash(pnpm:*)"
+      "Bash(pnpm:*)",
+      "Bash(yes No:*)",
+      "Bash(cat:*)"
     ]
   }
 }

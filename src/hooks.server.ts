@@ -18,6 +18,25 @@ const handleBetterAuth: Handle = async ({ event, resolve }) => {
 
 	const pathname = event.url.pathname;
 
+	// Admin role check
+	if (session && pathname.startsWith('/admin')) {
+		const { db } = await import('$lib/server/db');
+		const { user: userTable } = await import('$lib/server/db/auth.schema');
+		const { eq } = await import('drizzle-orm');
+
+		const [dbUser] = await db.select({ role: userTable.role })
+			.from(userTable)
+			.where(eq(userTable.id, session.user.id))
+			.limit(1);
+
+		if (!dbUser || dbUser.role !== 'admin') {
+			return new Response(null, {
+				status: 303,
+				headers: { location: '/profile' }
+			});
+		}
+	}
+
 	if (!session) {
 		const isProtectedRoute = pathname.startsWith('/profile') || pathname.startsWith('/admin');
 		if (isProtectedRoute) {

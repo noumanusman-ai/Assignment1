@@ -169,7 +169,7 @@
 				<label class="text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
 					>Password</label
 				>
-				<a class="text-xs font-bold text-primary hover:underline" href="#">Forgot?</a>
+				<a class="text-xs font-bold text-primary hover:underline" href="/forgot-password">Forgot?</a>
 			</div>
 			<div class="relative">
 				<span

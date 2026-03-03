@@ -5,8 +5,12 @@ export const authClient = createAuthClient({
 })
 
 export async function sendVerificationEmail(email: string, callbackURL?: string) {
-    return authClient.sendVerificationEmail({
-        email,
-        callbackURL: callbackURL ?? "/"
+    const baseURL = typeof window !== "undefined" ? window.location.origin : "";
+    const res = await fetch(`${baseURL}/api/auth/send-verification-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, callbackURL: callbackURL ?? "/" }),
+        credentials: "include"
     });
+    return res.json();
 }

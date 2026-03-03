@@ -263,6 +263,7 @@
 					</form>
 				</section>
 
+				<!-- Security / Change Password -->
 				<section
 					class="rounded-xl border border-slate-200 bg-white p-6 shadow-xl backdrop-blur-sm md:p-8 dark:border-primary/10 dark:bg-slate-950/40"
 				>
@@ -280,6 +281,7 @@
 							<div class="relative">
 								<input
 									id="current-password"
+									bind:value={currentPassword}
 									class="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-slate-900 transition-all outline-none focus:border-transparent focus:ring-2 focus:ring-primary dark:border-slate-800 dark:bg-slate-900 dark:text-white"
 									placeholder="••••••••"
 									type="password"
@@ -293,8 +295,9 @@
 							>
 							<input
 								id="new-password"
+								bind:value={newPassword}
 								class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 transition-all outline-none focus:border-transparent focus:ring-2 focus:ring-primary dark:border-slate-800 dark:bg-slate-900 dark:text-white"
-								placeholder="Minimum 12 chars"
+								placeholder="Minimum 8 chars"
 								type="password"
 							/>
 						</div>
@@ -306,24 +309,44 @@
 							>
 							<input
 								id="confirm-password"
+								bind:value={confirmPassword}
 								class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 transition-all outline-none focus:border-transparent focus:ring-2 focus:ring-primary dark:border-slate-800 dark:bg-slate-900 dark:text-white"
 								placeholder="Repeat password"
 								type="password"
 							/>
 						</div>
 					</div>
+					{#if passwordError}
+						<p class="mt-4 text-sm font-medium text-red-500">{passwordError}</p>
+					{/if}
+					{#if passwordSuccess}
+						<p class="mt-4 text-sm font-medium text-green-500">Password updated successfully!</p>
+					{/if}
 					<div class="mt-8 flex justify-end gap-4">
 						<button
+							type="button"
+							onclick={() => { currentPassword = ''; newPassword = ''; confirmPassword = ''; passwordError = ''; passwordSuccess = false; }}
 							class="rounded-lg px-6 py-3 font-bold text-slate-500 transition-colors hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
 							>Cancel</button
 						>
 						<button
-							class="rounded-lg border border-primary/20 bg-primary/20 px-8 py-3 font-bold text-primary transition-all hover:bg-primary/30"
-							>Update Password</button
+							type="button"
+							disabled={passwordLoading}
+							onclick={updatePassword}
+							class="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/20 px-8 py-3 font-bold text-primary transition-all hover:bg-primary/30 disabled:opacity-50"
 						>
+							{#if passwordLoading}
+								<svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+									<path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+								</svg>
+							{/if}
+							Update Password
+						</button>
 					</div>
 				</section>
 
+				<!-- Danger Zone / Delete Account -->
 				<div
 					class="mb-10 flex flex-col items-center justify-between gap-4 rounded-xl border border-red-500/20 bg-red-500/5 p-6 md:flex-row"
 				>
@@ -333,10 +356,39 @@
 							Once you delete your account, there is no going back. Please be certain.
 						</p>
 					</div>
-					<button
-						class="rounded-lg bg-red-500 px-6 py-2 font-bold whitespace-nowrap text-white transition-colors hover:bg-red-600"
-						>Delete Account</button
-					>
+					{#if !showDeleteConfirm}
+						<button
+							onclick={() => showDeleteConfirm = true}
+							class="rounded-lg bg-red-500 px-6 py-2 font-bold whitespace-nowrap text-white transition-colors hover:bg-red-600"
+							>Delete Account</button
+						>
+					{:else}
+						<div class="flex flex-col items-end gap-2">
+							{#if deleteError}
+								<p class="text-sm font-medium text-red-500">{deleteError}</p>
+							{/if}
+							<div class="flex gap-2">
+								<button
+									onclick={() => { showDeleteConfirm = false; deleteError = ''; }}
+									class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+									>Cancel</button
+								>
+								<button
+									disabled={deleteLoading}
+									onclick={deleteAccount}
+									class="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+								>
+									{#if deleteLoading}
+										<svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+											<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+											<path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+										</svg>
+									{/if}
+									Yes, Delete My Account
+								</button>
+							</div>
+						</div>
+					{/if}
 				</div>
 			</div>
 		</div>
