@@ -8,9 +8,66 @@
 	let error = $state('');
 	let success = $state(false);
 
+	// Password state
+	let currentPassword = $state('');
+	let newPassword = $state('');
+	let confirmPassword = $state('');
+	let passwordLoading = $state(false);
+	let passwordError = $state('');
+	let passwordSuccess = $state(false);
+
+	// Delete account state
+	let showDeleteConfirm = $state(false);
+	let deleteLoading = $state(false);
+	let deleteError = $state('');
+
 	async function logout() {
 		await authClient.signOut();
 		goto('/login');
+	}
+
+	async function updatePassword() {
+		passwordError = '';
+		passwordSuccess = false;
+
+		if (newPassword !== confirmPassword) {
+			passwordError = 'Passwords do not match.';
+			return;
+		}
+		if (newPassword.length < 8) {
+			passwordError = 'Password must be at least 8 characters.';
+			return;
+		}
+
+		passwordLoading = true;
+		const { error: err } = await authClient.changePassword({
+			currentPassword,
+			newPassword,
+			revokeOtherSessions: true
+		});
+		passwordLoading = false;
+
+		if (err) {
+			passwordError = err.message || 'Failed to update password.';
+		} else {
+			passwordSuccess = true;
+			currentPassword = '';
+			newPassword = '';
+			confirmPassword = '';
+		}
+	}
+
+	async function deleteAccount() {
+		deleteLoading = true;
+		deleteError = '';
+		const { error: err } = await authClient.deleteUser();
+		deleteLoading = false;
+
+		if (err) {
+			deleteError = err.message || 'Failed to delete account.';
+		} else {
+			goto('/login');
+		}
 	}
 </script>
 
