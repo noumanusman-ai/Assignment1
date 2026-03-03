@@ -11,9 +11,21 @@
 	let resendLoading = $state(false);
 	let resendSuccess = $state(false);
 
-	const redirectTo = $derived(
-		new URLSearchParams(page.url.search).get('redirectTo') || '/profile'
+	const explicitRedirect = $derived(
+		new URLSearchParams(page.url.search).get('redirectTo') || ''
 	);
+
+	async function getRedirectPath(): Promise<string> {
+		if (explicitRedirect) return explicitRedirect;
+		try {
+			const res = await fetch('/api/auth/get-session', { credentials: 'include' });
+			if (res.ok) {
+				const session = await res.json();
+				if (session?.user?.role === 'admin') return '/admin';
+			}
+		} catch {}
+		return '/profile';
+	}
 
 	async function login(e: SubmitEvent) {
 		e.preventDefault();
@@ -22,8 +34,7 @@
 		emailNotVerified = false;
 		const { error: authError } = await authClient.signIn.email({
 			email,
-			password,
-			callbackURL: redirectTo
+			password
 		});
 		loading = false;
 		if (authError) {
@@ -34,7 +45,8 @@
 				error = authError.message || 'Invalid credentials. Please try again.';
 			}
 		} else {
-			goto(redirectTo);
+			const dest = await getRedirectPath();
+			goto(dest);
 		}
 	}
 
@@ -52,14 +64,14 @@
 	async function signInWithGoogle() {
 		await authClient.signIn.social({
 			provider: 'google',
-			callbackURL: redirectTo
+			callbackURL: explicitRedirect || '/profile'
 		});
 	}
 
 	async function signInWithGitHub() {
 		await authClient.signIn.social({
 			provider: 'github',
-			callbackURL: redirectTo
+			callbackURL: explicitRedirect || '/profile'
 		});
 	}
 </script>

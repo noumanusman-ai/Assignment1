@@ -3,7 +3,9 @@ import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
 import { user, session as sessionTable } from '$lib/server/db/auth.schema';
 import { eq, ne, like, or, count, gt, and, lte, desc } from 'drizzle-orm';
-import { auth } from '$lib/server/auth';
+import { account } from '$lib/server/db/auth.schema';
+import { hashPassword } from 'better-auth/crypto';
+import { generateRandomString } from 'better-auth/crypto';
 
 const PAGE_SIZE = 5;
 
@@ -127,21 +129,37 @@ export const actions: Actions = {
 		}
 
 		try {
-			const result = await auth.api.signUpEmail({
-				body: { name, email, password }
+			const userId = generateRandomString(32, 'a-z', '0-9');
+			const accountId = generateRandomString(32, 'a-z', '0-9');
+			const hashedPassword = await hashPassword(password);
+			const now = new Date();
+
+			// Insert user directly — skip verification email for admin-created users
+			await db.insert(user).values({
+				id: userId,
+				name,
+				email,
+				emailVerified: true,
+				role: 'user',
+				banned: false,
+				createdAt: now,
+				updatedAt: now
 			});
 
-			if (!result?.user?.id) {
-				return { error: 'Failed to create user.' };
-			}
+			// Insert credential account (stores the hashed password)
+			await db.insert(account).values({
+				id: accountId,
+				accountId: userId,
+				providerId: 'credential',
+				userId,
+				password: hashedPassword,
+				createdAt: now,
+				updatedAt: now
+			});
 
 			return { success: true, message: `User ${email} created successfully.` };
 		} catch (err: any) {
-			const message = err?.message || 'Failed to create user.';
-			if (message.includes('already') || message.includes('exists') || message.includes('unique')) {
-				return { error: 'A user with this email already exists.' };
-			}
-			return { error: message };
+			return { error: err?.message || 'Failed to create user.' };
 		}
 	},
 

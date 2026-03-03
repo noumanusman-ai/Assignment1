@@ -3,7 +3,7 @@
 	import { authClient } from '$lib/auth-client';
 	import { goto } from '$app/navigation';
 
-	let { data, form } = $props();
+	let { data } = $props();
 	let openMenu = $state<string | null>(null);
 	let searchQuery = $state(data.search);
 
@@ -41,14 +41,6 @@
 		}, 4000);
 	}
 
-	// Show form action results as toasts
-	$effect(() => {
-		if (form?.success && form?.message) {
-			addToast(form.message);
-		} else if (form?.error) {
-			addToast(form.error, 'error');
-		}
-	});
 
 	function toggleMenu(userId: string) {
 		openMenu = openMenu === userId ? null : userId;
