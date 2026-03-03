@@ -2,7 +2,6 @@
 	import { enhance } from '$app/forms';
 	import { authClient } from '$lib/auth-client';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
 
 	let { data, form } = $props();
 	let openMenu = $state<string | null>(null);
@@ -15,11 +14,12 @@
 	let addUserName = $state('');
 	let addUserEmail = $state('');
 	let addUserPassword = $state('');
-	let addUserRole = $state('user');
+
+	// Mobile menu
+	let showMobileMenu = $state(false);
 
 	// Filter panel
 	let showFilters = $state(false);
-	let filterRole = $state(data.roleFilter);
 	let filterStatus = $state(data.statusFilter);
 
 	// Delete confirmation
@@ -95,7 +95,6 @@
 		addUserName = '';
 		addUserEmail = '';
 		addUserPassword = '';
-		addUserRole = 'user';
 		addUserError = '';
 		addUserLoading = false;
 	}
@@ -113,7 +112,6 @@
 	function applyFilters() {
 		const params = new URLSearchParams();
 		if (searchQuery) params.set('q', searchQuery);
-		if (filterRole) params.set('role', filterRole);
 		if (filterStatus) params.set('status', filterStatus);
 		params.set('page', '1');
 		goto(`/admin?${params.toString()}`);
@@ -121,7 +119,6 @@
 	}
 
 	function clearFilters() {
-		filterRole = '';
 		filterStatus = '';
 		searchQuery = '';
 		goto('/admin');
@@ -132,12 +129,11 @@
 		const params = new URLSearchParams();
 		params.set('page', String(pageNum));
 		if (data.search) params.set('q', data.search);
-		if (data.roleFilter) params.set('role', data.roleFilter);
 		if (data.statusFilter) params.set('status', data.statusFilter);
 		return `/admin?${params.toString()}`;
 	}
 
-	const hasActiveFilters = $derived(data.roleFilter || data.statusFilter);
+	const hasActiveFilters = $derived(!!data.statusFilter);
 </script>
 
 <svelte:head>
@@ -170,74 +166,153 @@
 
 	<!-- Header -->
 	<header
-		class="sticky top-0 z-50 flex items-center justify-between border-b border-primary/20 bg-[#16112b]/80 px-6 py-3 backdrop-blur-md md:px-10"
+		class="sticky top-0 z-50 border-b border-primary/20 bg-[#16112b]/80 backdrop-blur-md"
 	>
-		<div class="flex items-center gap-6">
-			<a href="/admin" class="flex items-center gap-2.5">
-				<div
-					class="flex size-8 items-center justify-center rounded-lg bg-primary text-white"
-				>
-					<span class="material-symbols-outlined text-xl">fingerprint</span>
-				</div>
-				<span class="text-lg font-bold text-white"
-					>NexusID <span class="font-normal text-slate-400">Admin</span></span
-				>
-			</a>
-			<form method="GET" class="hidden md:block" onsubmit={(e) => { e.preventDefault(); applyFilters(); }}>
-				<div class="relative">
-					<span
-						class="material-symbols-outlined absolute top-1/2 left-3 -translate-y-1/2 text-base text-slate-500"
-						>search</span
+		<div class="flex items-center justify-between px-4 py-3 md:px-10">
+			<!-- Left: Logo + Search -->
+			<div class="flex items-center gap-4 md:gap-6">
+				<a href="/admin" class="flex items-center gap-2">
+					<div
+						class="flex size-8 items-center justify-center rounded-lg bg-primary text-white"
 					>
-					<input
-						name="q"
-						bind:value={searchQuery}
-						class="h-9 w-64 rounded-lg border border-slate-700/50 bg-slate-900/50 pr-4 pl-9 text-sm text-slate-300 outline-none placeholder:text-slate-600 focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
-						placeholder="Search users by name or email..."
-						type="text"
-					/>
-				</div>
-			</form>
-		</div>
-		<div class="flex items-center gap-4">
-			<div class="relative">
-				<button
-					onclick={(e) => { e.stopPropagation(); }}
-					class="relative text-slate-400 transition-colors hover:text-white"
-					title="Notifications"
-				>
-					<span class="material-symbols-outlined text-xl">notifications</span>
-					{#if data.stats.pendingCount > 0}
+						<span class="material-symbols-outlined text-xl">fingerprint</span>
+					</div>
+					<span class="text-lg font-bold text-white"
+						>NexusID <span class="hidden font-normal text-slate-400 sm:inline">Admin</span></span
+					>
+				</a>
+				<form method="GET" class="hidden lg:block" onsubmit={(e) => { e.preventDefault(); applyFilters(); }}>
+					<div class="relative">
 						<span
-							class="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white"
+							class="material-symbols-outlined absolute top-1/2 left-3 -translate-y-1/2 text-base text-slate-500"
+							>search</span
 						>
-							{data.stats.pendingCount > 9 ? '9+' : data.stats.pendingCount}
-						</span>
-					{/if}
+						<input
+							name="q"
+							bind:value={searchQuery}
+							class="h-9 w-64 rounded-lg border border-slate-700/50 bg-slate-900/50 pr-4 pl-9 text-sm text-slate-300 outline-none placeholder:text-slate-600 focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+							placeholder="Search users by name or email..."
+							type="text"
+						/>
+					</div>
+				</form>
+			</div>
+
+			<!-- Right: Desktop nav -->
+			<div class="hidden items-center gap-4 md:flex">
+				<div class="relative">
+					<button
+						onclick={(e) => { e.stopPropagation(); }}
+						class="relative text-slate-400 transition-colors hover:text-white"
+						title="Pending verifications"
+					>
+						<span class="material-symbols-outlined text-xl">notifications</span>
+						{#if data.stats.pendingCount > 0}
+							<span
+								class="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white"
+							>
+								{data.stats.pendingCount > 9 ? '9+' : data.stats.pendingCount}
+							</span>
+						{/if}
+					</button>
+				</div>
+				<div class="h-6 w-px bg-slate-700/50"></div>
+				<div class="flex items-center gap-3">
+					<div class="text-right">
+						<p class="text-sm font-semibold text-white">{data.currentUser.name}</p>
+						<p class="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+							Super Admin
+						</p>
+					</div>
+					<div
+						class="size-9 rounded-full border-2 border-primary/30 bg-cover bg-center"
+						style:background-image="url({data.currentUser.image ||
+							`https://avatar.vercel.sh/${data.currentUser.email}`})"
+					></div>
+				</div>
+				<button
+					onclick={logout}
+					class="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white transition-all hover:bg-primary/80"
+				>
+					<span class="material-symbols-outlined text-sm">logout</span>
+					Sign Out
 				</button>
 			</div>
-			<div class="h-6 w-px bg-slate-700/50"></div>
-			<div class="flex items-center gap-3">
-				<div class="text-right">
-					<p class="text-sm font-semibold text-white">{data.currentUser.name}</p>
-					<p class="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
-						Super Admin
-					</p>
+
+			<!-- Right: Mobile hamburger -->
+			<div class="flex items-center gap-3 md:hidden">
+				<div class="relative">
+					<button
+						onclick={(e) => { e.stopPropagation(); }}
+						class="relative text-slate-400 transition-colors hover:text-white"
+						title="Pending verifications"
+					>
+						<span class="material-symbols-outlined text-xl">notifications</span>
+						{#if data.stats.pendingCount > 0}
+							<span
+								class="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white"
+							>
+								{data.stats.pendingCount > 9 ? '9+' : data.stats.pendingCount}
+							</span>
+						{/if}
+					</button>
 				</div>
-				<div
-					class="size-9 rounded-full border-2 border-primary/30 bg-cover bg-center"
-					style:background-image="url({data.currentUser.image ||
-						`https://avatar.vercel.sh/${data.currentUser.email}`})"
-				></div>
+				<button
+					onclick={(e) => { e.stopPropagation(); showMobileMenu = !showMobileMenu; }}
+					class="rounded-lg p-1 text-slate-400 transition-colors hover:text-white"
+				>
+					<span class="material-symbols-outlined text-2xl">
+						{showMobileMenu ? 'close' : 'menu'}
+					</span>
+				</button>
 			</div>
-			<button
-				onclick={logout}
-				class="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white transition-all hover:bg-primary/80"
-			>
-				<span class="material-symbols-outlined text-sm">logout</span>
-				Sign Out
-			</button>
 		</div>
+
+		<!-- Mobile menu dropdown -->
+		{#if showMobileMenu}
+			<div class="border-t border-slate-700/30 px-4 py-4 md:hidden">
+				<!-- Mobile search -->
+				<form method="GET" class="mb-4 lg:hidden" onsubmit={(e) => { e.preventDefault(); showMobileMenu = false; applyFilters(); }}>
+					<div class="relative">
+						<span
+							class="material-symbols-outlined absolute top-1/2 left-3 -translate-y-1/2 text-base text-slate-500"
+							>search</span
+						>
+						<input
+							name="q"
+							bind:value={searchQuery}
+							class="h-10 w-full rounded-lg border border-slate-700/50 bg-slate-900/50 pr-4 pl-9 text-sm text-slate-300 outline-none placeholder:text-slate-600 focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+							placeholder="Search users by name or email..."
+							type="text"
+						/>
+					</div>
+				</form>
+
+				<!-- User info -->
+				<div class="mb-4 flex items-center gap-3 rounded-lg bg-slate-800/30 p-3">
+					<div
+						class="size-10 rounded-full border-2 border-primary/30 bg-cover bg-center"
+						style:background-image="url({data.currentUser.image ||
+							`https://avatar.vercel.sh/${data.currentUser.email}`})"
+					></div>
+					<div>
+						<p class="text-sm font-semibold text-white">{data.currentUser.name}</p>
+						<p class="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+							Super Admin
+						</p>
+					</div>
+				</div>
+
+				<!-- Sign out -->
+				<button
+					onclick={() => { showMobileMenu = false; logout(); }}
+					class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white transition-all hover:bg-primary/80"
+				>
+					<span class="material-symbols-outlined text-sm">logout</span>
+					Sign Out
+				</button>
+			</div>
+		{/if}
 	</header>
 
 	<!-- Main Content -->
@@ -331,7 +406,7 @@
 							<span
 								class="flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white"
 							>
-								{(data.roleFilter ? 1 : 0) + (data.statusFilter ? 1 : 0)}
+								1
 							</span>
 						{/if}
 					</button>
@@ -354,31 +429,11 @@
 								{/if}
 							</div>
 
-							<!-- Role Filter -->
-							<div class="mb-4">
-								<label
-									class="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase"
-									>Role</label
-								>
-								<div class="flex flex-wrap gap-2">
-									{#each [{ value: '', label: 'All' }, { value: 'admin', label: 'Admin' }, { value: 'editor', label: 'Editor' }, { value: 'user', label: 'User' }] as opt}
-										<button
-											onclick={() => (filterRole = opt.value)}
-											class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors {filterRole === opt.value
-												? 'bg-primary text-white'
-												: 'bg-slate-800/80 text-slate-400 hover:text-white'}"
-										>
-											{opt.label}
-										</button>
-									{/each}
-								</div>
-							</div>
-
 							<!-- Status Filter -->
 							<div class="mb-5">
 								<label
 									class="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase"
-									>Status</label
+									for="filter-status">Status</label
 								>
 								<div class="flex flex-wrap gap-2">
 									{#each [{ value: '', label: 'All' }, { value: 'active', label: 'Active' }, { value: 'pending', label: 'Pending' }, { value: 'suspended', label: 'Suspended' }] as opt}
@@ -418,22 +473,6 @@
 		{#if hasActiveFilters}
 			<div class="mb-4 flex flex-wrap items-center gap-2">
 				<span class="text-xs text-slate-500">Active filters:</span>
-				{#if data.roleFilter}
-					<span
-						class="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
-					>
-						Role: {data.roleFilter}
-						<button
-							onclick={() => {
-								filterRole = '';
-								applyFilters();
-							}}
-							class="ml-1 hover:text-white"
-						>
-							<span class="material-symbols-outlined text-sm">close</span>
-						</button>
-					</span>
-				{/if}
 				{#if data.statusFilter}
 					<span
 						class="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
@@ -501,22 +540,10 @@
 									</div>
 								</td>
 								<td class="px-6 py-4">
-									{#if u.role === 'admin'}
-										<span
-											class="inline-block rounded-md border border-purple-500/30 bg-purple-500/10 px-3 py-1 text-xs font-bold text-purple-400"
-											>Admin</span
-										>
-									{:else if u.role === 'editor'}
-										<span
-											class="inline-block rounded-md border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-400"
-											>Editor</span
-										>
-									{:else}
-										<span
-											class="inline-block rounded-md border border-slate-500/30 bg-slate-500/10 px-3 py-1 text-xs font-bold text-slate-400"
-											>User</span
-										>
-									{/if}
+									<span
+										class="inline-block rounded-md border border-slate-500/30 bg-slate-500/10 px-3 py-1 text-xs font-bold text-slate-400"
+										>User</span
+									>
 								</td>
 								<td class="px-6 py-4">
 									{#if status.color === 'green'}
@@ -567,69 +594,6 @@
 												onclick={(e) => e.stopPropagation()}
 											>
 												{#if u.id !== data.currentUser.id}
-													<!-- Change Role -->
-													<form
-														method="POST"
-														action="?/changeRole"
-														use:enhance={() => {
-															closeMenu();
-															return async ({ update }) => {
-																update();
-																addToast(
-																	`Role updated successfully.`
-																);
-															};
-														}}
-													>
-														<input
-															type="hidden"
-															name="userId"
-															value={u.id}
-														/>
-														{#if u.role !== 'admin'}
-															<button
-																type="submit"
-																name="role"
-																value="admin"
-																class="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-slate-700/50"
-															>
-																<span
-																	class="material-symbols-outlined text-base text-purple-400"
-																	>shield</span
-																>
-																Make Admin
-															</button>
-														{/if}
-														{#if u.role !== 'editor'}
-															<button
-																type="submit"
-																name="role"
-																value="editor"
-																class="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-slate-700/50"
-															>
-																<span
-																	class="material-symbols-outlined text-base text-blue-400"
-																	>edit</span
-																>
-																Make Editor
-															</button>
-														{/if}
-														{#if u.role !== 'user'}
-															<button
-																type="submit"
-																name="role"
-																value="user"
-																class="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-slate-700/50"
-															>
-																<span
-																	class="material-symbols-outlined text-base text-slate-400"
-																	>person</span
-																>
-																Make User
-															</button>
-														{/if}
-													</form>
-													<div class="border-t border-slate-700/30"></div>
 													<!-- Ban/Unban -->
 													{#if u.banned}
 														<form
@@ -937,22 +901,19 @@
 					</div>
 				</div>
 
-				<!-- Role -->
+				<!-- Role (read-only) -->
 				<div class="flex flex-col gap-1.5">
-					<label
-						class="text-xs font-bold tracking-wider text-slate-500 uppercase"
-						for="adduser-role">Role</label
+					<label class="text-xs font-bold tracking-wider text-slate-500 uppercase"
+						>Role</label
 					>
-					<select
-						id="adduser-role"
-						name="role"
-						bind:value={addUserRole}
-						class="h-11 w-full rounded-lg border border-slate-700/50 bg-slate-900/50 px-4 text-sm text-white outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+					<div
+						class="flex h-11 items-center rounded-lg border border-slate-700/50 bg-slate-900/50 px-4 text-sm text-slate-400"
 					>
-						<option value="user">User</option>
-						<option value="editor">Editor</option>
-						<option value="admin">Admin</option>
-					</select>
+						<span class="material-symbols-outlined mr-2 text-base text-slate-500"
+							>person</span
+						>
+						User
+					</div>
 				</div>
 
 				<div class="mt-2 flex gap-3">
