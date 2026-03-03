@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node:*)",
+      "Bash(npx vite:*)",
+      "Bash(curl:*)",
+      "Bash(npx:*)",
+      "Bash(ls:*)",
+      "Bash(pnpm add:*)",
+      "Bash(xargs grep:*)",
+      "Bash(grep:*)"
+    ]
+  }
+}
