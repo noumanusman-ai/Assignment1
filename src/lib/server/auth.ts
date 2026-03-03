@@ -5,9 +5,21 @@ import { env } from '$env/dynamic/private';
 import { getRequestEvent } from '$app/server';
 import { db } from '$lib/server/db';
 import * as authSchema from '$lib/server/db/auth.schema';
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-const resend = new Resend(env.RESEND_API_KEY);
+let _transporter: nodemailer.Transporter;
+function getTransporter() {
+	if (!_transporter) {
+		_transporter = nodemailer.createTransport({
+			service: 'gmail',
+			auth: {
+				user: env.SMTP_USER,
+				pass: env.SMTP_APP_PASSWORD
+			}
+		});
+	}
+	return _transporter;
+}
 
 function buildVerificationEmail(url: string): string {
 	return `
@@ -80,9 +92,8 @@ export const auth = betterAuth({
 		sendOnSignUp: true,
 		autoSignInAfterVerification: true,
 		sendVerificationEmail: async ({ user, url }) => {
-			const fromEmail: string = env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev';
-			await resend.emails.send({
-				from: fromEmail,
+			await getTransporter().sendMail({
+				from: `"NexusID" <${env.SMTP_USER}>`,
 				to: user.email,
 				subject: 'Verify your NexusID email',
 				html: buildVerificationEmail(url)

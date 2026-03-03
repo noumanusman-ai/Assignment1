@@ -8,7 +8,8 @@
       "Bash(ls:*)",
       "Bash(pnpm add:*)",
       "Bash(xargs grep:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(pnpm:*)"
     ]
   }
 }
